@@ -1,0 +1,120 @@
+# Copyright 2018,2019,2020,2021 Sony Corporation.
+# Copyright 2021 Sony Group Corporation.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+
+"""
+Provide data iterator for horse2zebra examples.
+"""
+
+import os
+import zipfile
+from contextlib import contextmanager
+import numpy as np
+import nnabla as nn
+from nnabla.logger import logger
+from nnabla.utils.data_iterator import data_iterator
+from nnabla.utils.data_source import DataSource
+from nnabla.utils.data_source_loader import download
+from nnabla.utils.image_utils import imread
+
+
+def load_cyclegan_dataset(dataset="GANdatasets", train=True, domain="A",
+                          normalize_method=lambda x: (x - 127.5) / 127.5,
+                          local_zip_path="datasets\GANdatasets.zip"):
+    """
+    CycleGANデータセットをロードする関数
+
+    Args:
+        dataset (str): データセット名
+        train (bool): Trueなら訓練データ、Falseならテストデータ
+        domain (str): ドメイン名 (A or B)
+        normalize_method: 正規化関数
+        local_zip_path (str): ローカルのZIPファイルのパス
+
+    Returns:
+        np.ndarray: 画像データ
+        list: ファイル名リスト
+    """
+
+    assert domain in ["A", "B"]
+
+    if local_zip_path:
+        # ローカルファイルを使用する場合
+        with zipfile.ZipFile(local_zip_path, "r") as zf:
+            images = []
+            filename_list = []
+            dirname = "{}{}".format("train" if train else "test", domain)
+
+            # 指定されたディレクトリ内の.jpgファイルをフィルタリング
+            zipinfos = filter(
+                lambda zinfo: dirname in zinfo.filename and ".jpg" in zinfo.filename,
+                zf.infolist()
+            )
+
+            for zipinfo in zipinfos:
+                with zf.open(zipinfo.filename, "r") as fp:
+                    # ファイル名
+                    filename = zipinfo.filename
+                    logger.info('loading {}'.format(filename))
+
+                    # 画像読み込み
+                    image = imread(fp, num_channels=3, channel_first=True)
+                    image = normalize_method(image)
+                    image_name, ext = os.path.splitext(filename.split("/")[-1])
+                    images.append(image)
+                    filename_list.append(image_name)
+
+    return np.asarray(images), filename_list
+
+
+class CycleGANDataSource(DataSource):
+    """Cycle GAN DataSource
+    """
+
+    def _get_data(self, position):
+        image = self._images[self._indices[position]]
+        return image, None
+
+    def __init__(self, dataset="GANdatasets", train=True, domain="A", shuffle=False, rng=None):
+        super(CycleGANDataSource, self).__init__(shuffle=shuffle)
+
+        if rng is None:
+            rng = np.random.RandomState(313)
+
+        images, filename_list = load_cyclegan_dataset(
+            dataset=dataset, train=train, domain=domain)
+        self._images = images
+        self._size = len(self._images)
+        self._variables = ('x', 'y')  # y is dummy
+        self.rng = rng
+        self.filename_list = filename_list
+        self.reset()
+
+    def reset(self):
+        self._indices = self.rng.permutation(self._size) \
+            if self._shuffle else np.arange(self._size)
+        return super(CycleGANDataSource, self).reset()
+
+
+def cycle_gan_data_source(dataset, train=True, domain="A", shuffle=False, rng=None):
+    return CycleGANDataSource(dataset=dataset,
+                              train=train, domain=domain, shuffle=shuffle, rng=rng)
+
+
+def cycle_gan_data_iterator(data_source, batch_size):
+    return data_iterator(data_source,
+                         batch_size=batch_size,
+                         with_memory_cache=False,
+                         with_file_cache=False)
