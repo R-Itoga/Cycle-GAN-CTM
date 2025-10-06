@@ -155,19 +155,19 @@ def train(args):
         checkpoint_path = args.resume_from
         logger.info(f"Resuming from checkpoint: {checkpoint_path}")
 
-        # モデルのパラメータを読み込み
+        
         nn.load_parameters(os.path.join(checkpoint_path, 'params.h5'))
-        # 各ソルバーの状態を読み込み
+        
         solver_gen.load_states(os.path.join(checkpoint_path, 'solver_gen.h5'))
         solver_dis_x.load_states(os.path.join(checkpoint_path, 'solver_dis_x.h5'))
         solver_dis_y.load_states(os.path.join(checkpoint_path, 'solver_dis_y.h5'))
 
-        # EpochとIterationの数を読み込み
+        
         import json
         with open(os.path.join(checkpoint_path, 'progress.json'), 'r') as f:
             progress = json.load(f)
         start_epoch = progress['epoch']
-        start_iter = progress['iteration'] + 1 # 次のイテレーションから開始
+        start_iter = progress['iteration'] + 1 
 
     # Solvers
     solver_gen = S.Adam(base_lr, beta1, beta2)
@@ -264,14 +264,14 @@ def train(args):
                 os.makedirs(checkpoint_path)
 
             logger.info(f"Saving checkpoint to {checkpoint_path}")
-            # モデルのパラメータを保存
+            
             nn.save_parameters(os.path.join(checkpoint_path, 'params.h5'))
-            # 各ソルバーの状態を保存
+            
             solver_gen.save_states(os.path.join(checkpoint_path, 'solver_gen.h5'))
             solver_dis_x.save_states(os.path.join(checkpoint_path, 'solver_dis_x.h5'))
             solver_dis_y.save_states(os.path.join(checkpoint_path, 'solver_dis_y.h5'))
 
-            # EpochとIterationの数を保存
+            
             import json
             with open(os.path.join(checkpoint_path, 'progress.json'), 'w') as f:
                 json.dump({'epoch': epoch, 'iteration': i}, f)
