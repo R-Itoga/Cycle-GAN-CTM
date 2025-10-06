@@ -113,24 +113,24 @@ def test(args):
 
     # Validation for A
     logger.info("Validation for A")
-    # ループ回数をデータセットの全件をカバーできるように修正
+    
     for i in range((di_test_B.size + args.batch_size - 1) // args.batch_size):
         x_data, _ = di_test_B.next()
         x_real_test.d = x_data
         y_fake_test.forward(clear_buffer=True)
         x_recon_test.forward(clear_buffer=True)
 
-        # バッチ内の各画像についてループ処理
+        
         for j in range(x_data.shape[0]):
             file_index = i * args.batch_size + j
-            # データセットのサイズを超えたらスキップ（最後のバッチ対策）
+            
             if file_index >= di_test_B.size:
                 continue
             
             name = ds_test_B.filename_list[file_index]
             logger.info("generating a fake of {}".format(name))
 
-            # 1枚ずつ画像データを抜き出して保存
+            
             fake_a_image = np.expand_dims(y_fake_test.d[j], axis=0)
             recon_b_image = np.expand_dims(x_recon_test.d[j], axis=0)
 
