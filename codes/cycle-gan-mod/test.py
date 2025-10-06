@@ -13,7 +13,7 @@ from nnabla.ext_utils import get_extension_context
 
 from args import get_args, save_args
 from cycle_gan_data import cycle_gan_data_source, cycle_gan_data_iterator
-from gen_dis import gen_dis  # gen_dis クラスをインポート
+from gen_dis import gen_dis  
 from helpers import MonitorImageWithName
 
 
@@ -43,17 +43,17 @@ def test(args):
 
     # Models for test
     model_path = args.model_load_path
-    # 指定されたパスがディレクトリの場合、その中のparams.h5を読み込む
+    
     if os.path.isdir(model_path):
         model_path = os.path.join(model_path, 'params.h5')
     
     logger.info(f"Loading test model from: {model_path}")
     nn.load_parameters(model_path)
 
-    # gen_dis クラスのインスタンスを作成
+    
     gan = gen_dis(init_method=init_method, unpool=args.unpool) 
 
-    # インスタンスメソッドを呼び出す
+    
     y_fake_test, y_attention_map = gan.g(x_real_test, unpool=args.unpool)
     x_fake_test, x_attention_map = gan.f(y_real_test, unpool=args.unpool)  
     y_fake_test.persistent, x_fake_test.persistent = True, True
@@ -86,60 +86,29 @@ def test(args):
 
  # Validation for B
     logger.info("Validation for B")
-    # ループ回数をデータセットの全件をカバーできるように修正
+    
     for i in range((di_test_A.size + args.batch_size - 1) // args.batch_size):
         y_data, _ = di_test_A.next()
         y_real_test.d = y_data
         y_recon_test.forward(clear_buffer=True)
         
-        # バッチ内の各画像についてループ処理
+        
         for j in range(y_data.shape[0]):
             file_index = i * args.batch_size + j
-            # データセットのサイズを超えたらスキップ（最後のバッチ対策）
+            
             if file_index >= di_test_A.size:
                 continue
             
             name = ds_test_A.filename_list[file_index]
             logger.info("generating a fake of {}".format(name))
             
-            # 1枚ずつ画像データを抜き出して保存
-            # monitor.addは(N, C, H, W)の形状を期待するため、次元を追加
+            
+            
             fake_b_image = np.expand_dims(x_fake_test.d[j], axis=0)
             recon_a_image = np.expand_dims(y_recon_test.d[j], axis=0)
             
             monitor_test_fy.add(name, fake_b_image)
             monitor_test_y_recon.add(name, recon_a_image)
-
-            # 1. アテンションマップを取得 (バッチからj番目を抜き出す)
-            heatmap = x_attention_map.d[j, 0] # 形状は (H, W)
-
-            # 2. 元画像のサイズにリサイズ
-            heatmap = cv2.resize(heatmap, (w, h))
-
-            # 3. 0-255の整数に変換
-            heatmap = np.uint8(255 * heatmap)
-
-            # 4. カラーマップを適用してヒートマップ画像に変換
-            heatmap_colored = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-
-            # 5. 元画像も0-255の範囲に戻す
-            # y_dataは-1~1なので、0~255に変換
-            original_image_np = (y_data[j].transpose(1, 2, 0) + 1) / 2.0 * 255.0
-            original_image_np = original_image_np.astype(np.uint8)
-            original_image_bgr = cv2.cvtColor(original_image_np, cv2.COLOR_RGB2BGR) # OpenCVはBGR順
-
-            # 6. 元画像とヒートマップをブレンド
-            blended_image = cv2.addWeighted(original_image_bgr, 0.5, heatmap_colored, 0.5, 0)
-
-            # 7. 保存
-            # モニターパスの下にheatmapディレクトリを作成
-            heatmap_dir = os.path.join(args.monitor_path, 'heatmaps_B')
-            if not os.path.exists(heatmap_dir):
-                os.makedirs(heatmap_dir)
-            
-            save_path = os.path.join(heatmap_dir, f'{name}_heatmap.png')
-            cv2.imwrite(save_path, blended_image)
-            logger.info(f"Saved attention heatmap to {save_path}")
 
 
     # Validation for A
@@ -167,37 +136,6 @@ def test(args):
 
             monitor_test_gx.add(name, fake_a_image)
             monitor_test_x_recon.add(name, recon_b_image)
-
-            # 1. アテンションマップを取得 (バッチからj番目を抜き出す)
-            heatmap = y_attention_map.d[j, 0] # 形状は (H, W)
-
-            # 2. 元画像のサイズにリサイズ
-            heatmap = cv2.resize(heatmap, (w, h))
-
-            # 3. 0-255の整数に変換
-            heatmap = np.uint8(255 * heatmap)
-
-            # 4. カラーマップを適用してヒートマップ画像に変換
-            heatmap_colored = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-
-            # 5. 元画像も0-255の範囲に戻す
-            # y_dataは-1~1なので、0~255に変換
-            original_image_np = (x_data[j].transpose(1, 2, 0) + 1) / 2.0 * 255.0
-            original_image_np = original_image_np.astype(np.uint8)
-            original_image_bgr = cv2.cvtColor(original_image_np, cv2.COLOR_RGB2BGR) # OpenCVはBGR順
-
-            # 6. 元画像とヒートマップをブレンド
-            blended_image = cv2.addWeighted(original_image_bgr, 0.5, heatmap_colored, 0.5, 0)
-
-            # 7. 保存
-            # モニターパスの下にheatmapディレクトリを作成
-            heatmap_dir = os.path.join(args.monitor_path, 'heatmaps_A')
-            if not os.path.exists(heatmap_dir):
-                os.makedirs(heatmap_dir)
-            
-            save_path = os.path.join(heatmap_dir, f'{name}_heatmap.png')
-            cv2.imwrite(save_path, blended_image)
-            logger.info(f"Saved attention heatmap to {save_path}")
 
 
 def main():
