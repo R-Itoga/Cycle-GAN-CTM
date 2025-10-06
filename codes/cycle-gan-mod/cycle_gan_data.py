@@ -33,31 +33,18 @@ from nnabla.utils.image_utils import imread
 def load_cyclegan_dataset(dataset="GANdatasets", train=True, domain="A",
                           normalize_method=lambda x: (x - 127.5) / 127.5,
                           local_zip_path="datasets\GANdatasets.zip"):
-    """
-    CycleGANデータセットをロードする関数
 
-    Args:
-        dataset (str): データセット名
-        train (bool): Trueなら訓練データ、Falseならテストデータ
-        domain (str): ドメイン名 (A or B)
-        normalize_method: 正規化関数
-        local_zip_path (str): ローカルのZIPファイルのパス
-
-    Returns:
-        np.ndarray: 画像データ
-        list: ファイル名リスト
-    """
 
     assert domain in ["A", "B"]
 
     if local_zip_path:
-        # ローカルファイルを使用する場合
+        
         with zipfile.ZipFile(local_zip_path, "r") as zf:
             images = []
             filename_list = []
             dirname = "{}{}".format("train" if train else "test", domain)
 
-            # 指定されたディレクトリ内の.jpgファイルをフィルタリング
+            
             zipinfos = filter(
                 lambda zinfo: dirname in zinfo.filename and ".jpg" in zinfo.filename,
                 zf.infolist()
@@ -65,11 +52,11 @@ def load_cyclegan_dataset(dataset="GANdatasets", train=True, domain="A",
 
             for zipinfo in zipinfos:
                 with zf.open(zipinfo.filename, "r") as fp:
-                    # ファイル名
+                    
                     filename = zipinfo.filename
                     logger.info('loading {}'.format(filename))
 
-                    # 画像読み込み
+                    
                     image = imread(fp, num_channels=3, channel_first=True)
                     image = normalize_method(image)
                     image_name, ext = os.path.splitext(filename.split("/")[-1])
