@@ -5,7 +5,7 @@ import nnabla.parametric_functions as PF
 from nnabla.parameter import get_parameter_or_create
 from nnabla.initializer import ConstantInitializer
 from nnabla.parametric_functions import parametric_function_api
-# Spectral NormalizationはPFにあるので、個別にインポートは不要
+
 
 @parametric_function_api("in")
 def instance_normalization(inp, axes=[1], decay_rate=0.9, eps=1e-5,
@@ -32,7 +32,7 @@ def instance_normalization(inp, axes=[1], decay_rate=0.9, eps=1e-5,
                                  decay_rate, eps, batch_stat, output_stat)
 
 
-# convolution関数をSpectral Normalization適用版に修正
+
 def convolution_sn(x, n, kernel, stride, pad, init_method=None, scope_name="", with_bias=True):
     with nn.parameter_scope(scope_name):
         if init_method == "paper":
@@ -40,15 +40,14 @@ def convolution_sn(x, n, kernel, stride, pad, init_method=None, scope_name="", w
         else:
             s = nn.initializer.calc_normal_std_glorot(x.shape[1], n, kernel=kernel)
             init = nn.initializer.NormalInitializer(s)
-        # PF.convolution に apply_w=lambda w: PF.spectral_norm(w, dim=0) を追加
-        # dim=0 は、通常、畳み込みの出力チャンネルに対してSpectral Normを計算するために使用されます。
+
         x = PF.convolution(x, n, kernel=kernel, stride=stride,
                            pad=pad, with_bias=with_bias, w_init=init,
                            apply_w=lambda w: PF.spectral_norm(w, dim=0))
     return x
 
 
-def convolution(x, n, kernel, stride, pad, init_method=None, scope_name="", with_bias=True):  # Spectral Normなしの元の関数
+def convolution(x, n, kernel, stride, pad, init_method=None, scope_name="", with_bias=True):  
     with nn.parameter_scope(scope_name):
         if init_method == "paper":
             init = nn.initializer.NormalInitializer(0.02)
@@ -72,18 +71,17 @@ def deconvolution(x, n, kernel, stride, pad, init_method=None, scope_name=""):
     return x
 
 
-# convblock関数をSpectral Normalization適用版に修正
+
 def convblock_sn(x, n=0, k=(4, 4), s=(2, 2), p=(1, 1), leaky=False, init_method=None, scope_name=""):
     with nn.parameter_scope(scope_name):
-        # convolution_sn を使用
+       
         x = convolution_sn(x, n=n, kernel=k, stride=s, pad=p, init_method=init_method, scope_name="conv")
-        # Spectral NormとInstance Normは通常併用しないため、Instance Normはコメントアウトします。
-        # x = instance_normalization(x, fix_parameters=True)
+       
         x = F.leaky_relu(x, alpha=0.2) if leaky else F.relu(x)
     return x
 
 
-def convblock(x, n=0, k=(4, 4), s=(2, 2), p=(1, 1), leaky=False, init_method=None, scope_name=""): # Spectral Normなしの元の関数
+def convblock(x, n=0, k=(4, 4), s=(2, 2), p=(1, 1), leaky=False, init_method=None, scope_name=""): 
     with nn.parameter_scope(scope_name):
         x = convolution(x, n=n, kernel=k, stride=s, pad=p, init_method=init_method, scope_name="conv")
         x = instance_normalization(x, fix_parameters=True)
@@ -111,26 +109,24 @@ def channel_wise_attention_block(x, n_filters):
     """
     Channel-wise Attention block.
     """
-    # Global Average Pooling
+    
     gap = F.average_pooling(x, kernel=(x.shape[2], x.shape[3]), stride=(x.shape[2], x.shape[3]))
 
-    # 全結合層でチャネルごとに重み付け
+    
     with nn.parameter_scope("attention_mlp"):
-        # アフィン層にSpectral Normalizationを適用する場合はここを変更
-        # Spectral Norm for Affine layer would typically use dim=1
-        fc1 = PF.affine(gap, n_filters, base_axis=1)#, apply_w=lambda w: PF.spectral_norm(w, dim=1))
+        
+        fc1 = PF.affine(gap, n_filters, base_axis=1)
         relu = F.relu(fc1)
-        # アフィン層にSpectral Normalizationを適用する場合はここを変更
-        fc2 = PF.affine(relu, n_filters, base_axis=1)#, apply_w=lambda w: PF.spectral_norm(w, dim=1))
+       
+        fc2 = PF.affine(relu, n_filters, base_axis=1)
 
-
-    # sigmoidで重みを0~1に正規化
+    
     attention_weights = F.sigmoid(fc2)
 
-    # 重みをブロードキャストして入力テンソルに適用
+   
     attention_weights = F.reshape(attention_weights, (attention_weights.shape[0], attention_weights.shape[1], 1, 1))  # 重みの形状を変更
 
-    # 重み付けされた出力
+    
     out = x * attention_weights
 
     return out
@@ -140,24 +136,22 @@ def spatial_attention_block(x):
     """
     Spatial Attention block.
     """
-    # 空間方向に平均プーリングと最大プーリング
+    
     avg_pool = F.mean(x, axis=1, keepdims=True)
     max_pool = F.max(x, axis=1, keepdims=True)
 
-    # プーリング結果を連結
+    
     concat = F.concatenate(avg_pool, max_pool, axis=1)
 
-    # 畳み込み層で空間的な重み付け
+    
     with nn.parameter_scope("spatial_attention_conv"):
-        # Spatial Attentionの畳み込み層にSpectral Normalizationを適用する場合はここを変更
-        # Spectral Norm for this convolution would also use dim=0
-        conv = convolution(concat, 1, kernel=(7, 7), stride=(1, 1), pad=(3, 3), with_bias=False) # ここに apply_w=lambda w: PF.spectral_norm(w, dim=0) を追加可能
-
-
-    # Sigmoidで重みを0~1に正規化
+        
+        
+        conv = convolution(concat, 1, kernel=(7, 7), stride=(1, 1), pad=(3, 3), with_bias=False) 
+   
     attention_map = F.sigmoid(conv)
 
-    # 重みをブロードキャストして入力テンソルに適用
+    
     out = x * attention_map
 
     return out, attention_map
@@ -167,10 +161,10 @@ def cbam_block(x, n_filters):
     """
     Combined Channel and Spatial Attention block.
     """
-    # Channel-wise attention
+    
     x_channel = channel_wise_attention_block(x, n_filters)
 
-    # Spatial attention
+   
     x_spatial, attention_map = spatial_attention_block(x_channel)
 
     return x_spatial, attention_map
@@ -188,4 +182,5 @@ def resblock(x, n=256, init_method=None, scope_name=""):
             r = convolution(r, n, kernel=(3, 3), pad=(1, 1),
                             stride=(1, 1), init_method=init_method, scope_name="conv")
             r = instance_normalization(r, fix_parameters=True)
+
         return x + r
