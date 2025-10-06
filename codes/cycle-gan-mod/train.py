@@ -11,7 +11,7 @@ from nnabla.ext_utils import get_extension_context
 
 from args import get_args, save_args
 from cycle_gan_data import cycle_gan_data_source, cycle_gan_data_iterator
-#from layer import convblock, unpool_block, resblock, convolution   # cycle-gan_modified_copy パッケージ内の layer モジュールからインポート
+#from layer import convblock, unpool_block, resblock, convolution   
 from gen_dis import gen_dis
 
 class ImagePool(object):
@@ -66,7 +66,7 @@ def train(args):
     # Context
     extension_module = args.context
     if args.context is None:
-        extension_module = 'cudnn'  # 'cpu' から 'cudnn' に変更
+        extension_module = 'cudnn'  
     logger.info("Running in %s" % extension_module)
     ctx = get_extension_context(extension_module,
                                 device_id=args.device_id, type_config=args.type_config)
@@ -84,9 +84,9 @@ def train(args):
 
     # Models for training
     # Generate
-    gan = gen_dis(init_method=init_method, unpool=args.unpool, ctx=ctx)  # ctx を渡す
-    y_fake, _ = gan.g(x_real, unpool=args.unpool) # gen_dis.g を使用
-    x_fake, _ = gan.f(y_real, unpool=args.unpool) # init_method引数を削除、gen_dis.f を使用
+    gan = gen_dis(init_method=init_method, unpool=args.unpool, ctx=ctx)  
+    y_fake, _ = gan.g(x_real, unpool=args.unpool) 
+    x_fake, _ = gan.f(y_real, unpool=args.unpool)
     y_fake.persistent, x_fake.persistent = True, True
     # Reconstruct
     x_recon, _ = gan.f(y_fake, unpool=args.unpool)
@@ -94,25 +94,25 @@ def train(args):
     y_recon, _ = gan.g(x_fake, unpool=args.unpool)
     y_recon.persistent = True
     # Discriminate
-    d_y_fake = gan.d_y(y_fake) # init_method引数を削除、gen_dis.d_y を使用
-    d_x_fake = gan.d_x(x_fake) # init_method引数を削除、gen_dis.d_x を使用
-    d_y_real = gan.d_y(y_real) # init_method引数を削除、gen_dis.d_y を使用
-    d_x_real = gan.d_x(x_real) # init_method引数を削除、gen_dis.d_x を使用
-    d_y_history = gan.d_y(y_history) # init_method引数を削除、gen_dis.d_y を使用
-    d_x_history = gan.d_x(x_history) # init_method引数を削除、gen_dis.d_x を使用
+    d_y_fake = gan.d_y(y_fake) 
+    d_x_fake = gan.d_x(x_fake) 
+    d_y_real = gan.d_y(y_real) 
+    d_x_real = gan.d_x(x_real) 
+    d_y_history = gan.d_y(y_history) 
+    d_x_history = gan.d_x(x_history) 
 
     # Models for test
-    y_fake_test, _ = gan.g(x_real_test, unpool=args.unpool) # init_method引数を削除、gen_dis.g を使用
-    x_fake_test, _ = gan.f(y_real_test, unpool=args.unpool) # init_method引数を削除、gen_dis.f を使用
+    y_fake_test, _ = gan.g(x_real_test, unpool=args.unpool) 
+    x_fake_test, _ = gan.f(y_real_test, unpool=args.unpool) 
     y_fake_test.persistent, x_fake_test.persistent = True, True
     # Reconstruct
-    x_recon_test, _ = gan.f(y_fake_test, unpool=args.unpool) # init_method引数を削除、gen_dis.f を使用  <--- ★この行です
-    y_recon_test, _ = gan.g(x_fake_test, unpool=args.unpool) # init_method引数を削除、gen_dis.g を使用
-
+    x_recon_test, _ = gan.f(y_fake_test, unpool=args.unpool) 
+    y_recon_test, _ = gan.g(x_fake_test, unpool=args.unpool) 
+    
     # Losses
     # Reconstruction Loss
     loss_recon = gan.recon_loss(x_recon, x_real) \
-        + gan.recon_loss(y_recon, y_real) # gen_dis.recon_loss を使用
+        + gan.recon_loss(y_recon, y_real) 
     # Generator loss
     loss_gen = gan.lsgan_loss(d_y_fake) \
         + gan.lsgan_loss(d_x_fake) \
@@ -121,14 +121,14 @@ def train(args):
     if lambda_idt != 5:
         logger.info("Identity loss was added.")
         # Identity
-        y_idt, _ = gan.g(y_real, unpool=args.unpool) # init_method引数を削除、gen_dis.g を使用
-        x_idt, _ = gan.f(x_real, unpool=args.unpool) # init_method引数を削除、gen_dis.f を使用
+        y_idt, _ = gan.g(y_real, unpool=args.unpool) 
+        x_idt, _ = gan.f(x_real, unpool=args.unpool) 
         loss_idt = gan.recon_loss(x_idt, x_real) \
-            + gan.recon_loss(y_idt, y_real) # gen_dis.recon_loss を使用
+            + gan.recon_loss(y_idt, y_real)
         loss_gen += lambda_recon * lambda_idt * loss_idt
     # Discriminator losses
-    loss_dis_y = gan.lsgan_loss(d_y_history, d_y_real) # gen_dis.lsgan_loss を使用
-    loss_dis_x = gan.lsgan_loss(d_x_history, d_x_real) # gen_dis.lsgan_loss を使用        
+    loss_dis_y = gan.lsgan_loss(d_y_history, d_y_real)
+    loss_dis_x = gan.lsgan_loss(d_x_history, d_x_real)      
 
     # Solvers
     solver_gen = S.Adam(base_lr, beta1, beta2)
@@ -164,19 +164,19 @@ def train(args):
         checkpoint_path = args.resume_from
         logger.info(f"Resuming from checkpoint: {checkpoint_path}")
         
-        # モデルのパラメータを読み込み
+        
         nn.load_parameters(os.path.join(checkpoint_path, 'params.h5'))
-        # 各ソルバーの状態を読み込み
+       
         solver_gen.load_states(os.path.join(checkpoint_path, 'solver_gen.h5'))
         solver_dis_x.load_states(os.path.join(checkpoint_path, 'solver_dis_x.h5'))
         solver_dis_y.load_states(os.path.join(checkpoint_path, 'solver_dis_y.h5'))
         
-        # EpochとIterationの数を読み込み
+       
         import json
         with open(os.path.join(checkpoint_path, 'progress.json'), 'r') as f:
             progress = json.load(f)
         start_epoch = progress['epoch']
-        start_iter = progress['iteration'] + 1 # 次のイテレーションから開始     
+        start_iter = progress['iteration'] + 1 
     
     # Monitors
     monitor = Monitor(args.monitor_path)
@@ -227,7 +227,7 @@ def train(args):
     for i in range(start_iter, max_iter):
         # Validation
         if int((i+1) % (n_images // args.batch_size)) == 0:
-            epoch += 1 # ★Epochのインクリメントをブロックの先頭に移動
+            epoch += 1 
             logger.info("Mode:Test,Epoch:{}".format(epoch))
             # Monitor for train
             for monitor, v in monitor_train_list:
@@ -249,14 +249,14 @@ def train(args):
                 os.makedirs(checkpoint_path)
                 
             logger.info(f"Saving checkpoint to {checkpoint_path}")
-            # モデルのパラメータを保存
+            
             nn.save_parameters(os.path.join(checkpoint_path, 'params.h5'))
-            # 各ソルバーの状態を保存
+            
             solver_gen.save_states(os.path.join(checkpoint_path, 'solver_gen.h5'))
             solver_dis_x.save_states(os.path.join(checkpoint_path, 'solver_dis_x.h5'))
             solver_dis_y.save_states(os.path.join(checkpoint_path, 'solver_dis_y.h5'))
             
-            # EpochとIterationの数を保存
+            
             import json
             with open(os.path.join(checkpoint_path, 'progress.json'), 'w') as f:
                 json.dump({'epoch': epoch, 'iteration': i}, f)
