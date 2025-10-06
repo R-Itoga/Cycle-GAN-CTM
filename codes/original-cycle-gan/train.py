@@ -1,19 +1,3 @@
-# Copyright 2018,2019,2020,2021 Sony Corporation.
-# Copyright 2021 Sony Group Corporation.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 import os
 import numpy as np
 import argparse
@@ -155,20 +139,20 @@ def train(args):
         checkpoint_path = args.resume_from
         logger.info(f"Resuming from checkpoint: {checkpoint_path}")
 
-        # モデルのパラメータを読み込み
+        
         nn.load_parameters(os.path.join(checkpoint_path, 'params.h5'))
-        # 各ソルバーの状態を読み込み
+        
         solver_gen.load_states(os.path.join(checkpoint_path, 'solver_gen.h5'))
         solver_dis_x.load_states(os.path.join(checkpoint_path, 'solver_dis_x.h5'))
         solver_dis_y.load_states(os.path.join(checkpoint_path, 'solver_dis_y.h5'))
 
-        # EpochとIterationの数を読み込み
+        
         import json
         with open(os.path.join(checkpoint_path, 'progress.json'), 'r') as f:
             progress = json.load(f)
         start_epoch = progress['epoch']
-        start_iter = progress['iteration'] + 1 # 次のイテレーションから開始
-
+        start_iter = progress['iteration'] + 1 
+        
     # Solvers
     solver_gen = S.Adam(base_lr, beta1, beta2)
     solver_dis_x = S.Adam(base_lr, beta1, beta2)
@@ -264,14 +248,13 @@ def train(args):
                 os.makedirs(checkpoint_path)
 
             logger.info(f"Saving checkpoint to {checkpoint_path}")
-            # モデルのパラメータを保存
             nn.save_parameters(os.path.join(checkpoint_path, 'params.h5'))
-            # 各ソルバーの状態を保存
+            
             solver_gen.save_states(os.path.join(checkpoint_path, 'solver_gen.h5'))
             solver_dis_x.save_states(os.path.join(checkpoint_path, 'solver_dis_x.h5'))
             solver_dis_y.save_states(os.path.join(checkpoint_path, 'solver_dis_y.h5'))
 
-            # EpochとIterationの数を保存
+            
             import json
             with open(os.path.join(checkpoint_path, 'progress.json'), 'w') as f:
                 json.dump({'epoch': epoch, 'iteration': i}, f)
