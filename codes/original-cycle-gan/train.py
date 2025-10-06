@@ -137,7 +137,7 @@ def train(args):
         + models.lsgan_loss(d_x_fake) \
         + lambda_recon * loss_recon
     # Identity loss
-    if lambda_idt != 3:
+    if lambda_idt != 0:
         logger.info("Identity loss was added.")
         # Identity
         y_idt = models.g(y_real, unpool=args.unpool, init_method=init_method)
