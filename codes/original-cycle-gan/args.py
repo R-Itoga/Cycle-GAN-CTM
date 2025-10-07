@@ -1,19 +1,3 @@
-# Copyright 2018,2019,2020,2021 Sony Corporation.
-# Copyright 2021 Sony Group Corporation.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 def get_args(monitor_path='tmp.monitor', max_epoch=200, model_save_path=None,
              learning_rate=2*1e-4,
              batch_size=2, description=None):
@@ -86,17 +70,17 @@ def get_args(monitor_path='tmp.monitor', max_epoch=200, model_save_path=None,
 def save_args(args):
     from nnabla import logger
     import os
-    import datetime # <--- import を追加
+    import datetime 
 
     if not os.path.exists(args.monitor_path):
         os.makedirs(args.monitor_path)
 
     path = "{}/Arguments.txt".format(args.monitor_path)
     
-    # 追記モード 'a' を使用し、ファイルが存在すれば追記、なければ新規作成
-    with open(path, "a", encoding="utf-8") as fp: # <--- "w" から "a" に変更、エンコーディングも指定
+    
+    with open(path, "a", encoding="utf-8") as fp:
         
-        # 追記時に区切り線とタイムスタンプを挿入
+        
         fp.write("\n" + "="*30 + "\n")
         fp.write(f"Run started at: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         fp.write("="*30 + "\n")
