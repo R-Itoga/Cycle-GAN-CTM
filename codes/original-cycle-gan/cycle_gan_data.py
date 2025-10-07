@@ -1,19 +1,3 @@
-# Copyright 2018,2019,2020,2021 Sony Corporation.
-# Copyright 2021 Sony Group Corporation.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-
 """
 Provide data iterator for horse2zebra examples.
 """
@@ -33,31 +17,17 @@ from nnabla.utils.image_utils import imread
 def load_cyclegan_dataset(dataset="GANdatasets", train=True, domain="A",
                           normalize_method=lambda x: (x - 127.5) / 127.5,
                           local_zip_path="datasets\GANdatasets.zip"):
-    """
-    CycleGANデータセットをロードする関数
-
-    Args:
-        dataset (str): データセット名
-        train (bool): Trueなら訓練データ、Falseならテストデータ
-        domain (str): ドメイン名 (A or B)
-        normalize_method: 正規化関数
-        local_zip_path (str): ローカルのZIPファイルのパス
-
-    Returns:
-        np.ndarray: 画像データ
-        list: ファイル名リスト
-    """
-
+    
     assert domain in ["A", "B"]
 
     if local_zip_path:
-        # ローカルファイルを使用する場合
+        
         with zipfile.ZipFile(local_zip_path, "r") as zf:
             images = []
             filename_list = []
             dirname = "{}{}".format("train" if train else "test", domain)
 
-            # 指定されたディレクトリ内の.jpgファイルをフィルタリング
+           
             zipinfos = filter(
                 lambda zinfo: dirname in zinfo.filename and ".jpg" in zinfo.filename,
                 zf.infolist()
@@ -65,11 +35,11 @@ def load_cyclegan_dataset(dataset="GANdatasets", train=True, domain="A",
 
             for zipinfo in zipinfos:
                 with zf.open(zipinfo.filename, "r") as fp:
-                    # ファイル名
+                    
                     filename = zipinfo.filename
                     logger.info('loading {}'.format(filename))
 
-                    # 画像読み込み
+                   
                     image = imread(fp, num_channels=3, channel_first=True)
                     image = normalize_method(image)
                     image_name, ext = os.path.splitext(filename.split("/")[-1])
